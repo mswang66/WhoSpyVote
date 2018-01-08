@@ -1,0 +1,340 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>WebSocket Echo Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link href="./bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="./js/jquery-1.12.3.min.js"></script>
+    <script src="./js/jquery.cookie.js"></script>
+    
+    <script src="./bootstrap-3.3.5/js/bootstrap.min.js"></script>
+    <style type="text/css">
+        .padding4 {
+            padding: 4px;
+        }
+
+        .noPadding {
+            padding: 0;
+        }
+
+        .noMargin{
+            margin:0;
+        }
+
+    </style>
+</head>
+
+<body >
+    <div class="vertical-center">
+        <div class="container" style="border: 1px solid lightblue;border-radius: 5px;background-color: #ededf9;">
+            <br/>
+
+            <div style="padding-bottom: 8px">
+                <label style="font-weight: 400;padding-top:4px">I'm&nbsp;</label><label id="playname" style="font-weight: bold;color:blue;padding-top:4px;font-size:20px" ></label>
+                <label style="font-weight: 600;padding-top:4px" id="playerStatus"></label>
+               
+            </div >            
+        </div>
+
+
+        <hr style="margin-top:5px;margin-bottom: 5px" /> 
+
+        <div style="border: 1px solid lightblue;
+    border-radius: 5px;
+    padding: 5px;
+    background-color: #ededf9;">
+        <div class="container">
+            <button style="float: left;padding: 4px;margin-left:10%" id="readyButton" class="btn btn-primary" onclick="sendReady()"> 准备投票 </button>
+
+            <button style="float: left;padding: 4px;margin-left:10%" id="observeButton" class="btn btn-primary" onclick="sendObserve()"> 旁观一下 </button>            
+            <button style="float: right;padding: 4px" id="rename" class="btn btn-primary" onclick="rename()"> 重置name </button>
+        </div>
+
+        <div style="padding-right: 15px;padding-left: 15px;"><h4>玩家LIST</h4></div>
+        <div id="allplayers">
+           
+        </div>
+        <hr style="margin-top:5px;margin-bottom: 5px" /> 
+        <div>
+            <div style="border: 1px solid green;padding: 4px;border-radius: 5px;width:70%;margin-left: 15%">
+                <label style="margin-left:2%;color:blue;font-weight: 400;padding-top:4px;margin-top: 5px;width:30%;text-align: right;" id="wanna">我要投:&nbsp;</label> 
+                <label id="byVoter" style="width:30%;font-weight: bold;color:blue;padding-top:4px;font-size:20px;"></label>
+                <button style="padding: 4px;margin-right: 2%;width:28%;margin-bottom: 5px" id="voteButton" class="btn btn-primary" onclick="vote()"> 投票 </button>
+            </div>
+        </div>
+        </div>
+        <hr style="margin-top:5px;margin-bottom: 5px" /> 
+        <div style="padding-right: 15px;padding-left: 15px;">
+            <span style="font-size: 18px;maring:10px 0 10px 0">投票LIST</span>
+            <span style="font-size: 18px;maring:10px 0 10px 0;" id="voteStatus"></span>
+            
+        </div>
+
+        <div id="votesDiv" style="width:60%;margin-left:10%;margin-top: 20px">
+            
+
+
+        </div>
+
+    </div>
+</body>
+<script>
+        // var name_cookie = $.cookie("__name__");
+        // if(name_cookie === null){
+        //     alert(1);
+        // } else {
+        //     alert(2);
+        // }
+
+
+        var name_cookie = $.cookie("__name__");
+        if(name_cookie === null){
+            window.location.href='./login.html';
+            // $.cookie('__name__', "wode", {"path":"/"})
+        } else {
+            // alert(window.location.host)
+           $("#playname").append(name_cookie);
+           $("#playerStatus").html("");
+           $("#wanna").html("我要投:&nbsp;");
+
+            var ws = new WebSocket("ws://"+ window.location.host+"/mwv0");
+            // var ws = new WebSocket("ws:///mwv0/");
+            ws.onopen = function (e) {
+                console.log('Connection to server opened');
+                sendLogin();
+            }
+
+            var players_tmp = [];
+            var votes_tmp = [];
+
+
+            ws.onmessage = function (e) {
+                var data = JSON.parse(e.data);
+                // let channel = data.channel;
+                handleMessage(data);
+                
+            }
+
+            ws.onclose = function (e) {
+                console.log("Connection closed");
+                alert("后台连接已断！刷新页面重新获取内容");
+            }
+
+            function handleMessage(data){
+                let channel = data.channel;
+                switch (channel){
+                    case "PLAYERS":
+                        showPlayers(data.msg)
+                        break;
+                    case "VOTES":
+                        showVotes(data.msg);
+                        break;
+                    default:
+                        break;
+                }
+            } 
+
+            function showVotes(votes) {
+                votes_tmp = votes;
+                // a.foreach(function)
+                var voteDict = {};
+
+                votes.forEach((vote)=>{
+                    if(vote.voter === name_cookie){
+                        $("#readyButton").prop('disabled', true);
+                        $("#observeButton").prop('disabled', true);  
+                        $("#voteButton").prop('disabled', true);
+                        $("#wanna").html("已投票:&nbsp;");
+                        $("#byVoter").html(vote.byVoter);
+                    }
+
+                    if(voteDict[vote.byVoter] === null || voteDict[vote.byVoter] === undefined){
+                        voteDict[vote.byVoter] = [vote.voter];
+                    } else {
+                        voteDict[vote.byVoter].push(vote.voter);
+                    }
+                });
+
+                let votehtml = genVotesHtml(voteDict);
+                $("#votesDiv").html(votehtml);
+
+                $("#voteStatus").css({'color': '#8ffd8f'});
+                $("#voteStatus").html("【投票中】");
+
+                var alive_num = 0;
+                for(let i = 0; i < players_tmp.length; i++){
+                    if(players_tmp[i].status === 'alive'){
+                        alive_num+=1;
+                    }
+                }
+
+
+                if(votes_tmp.length > 0 && votes_tmp.length === alive_num){
+                    $("#readyButton").prop('disabled', false);
+                    $("#observeButton").prop('disabled', false);  
+                    $("#voteButton").prop('disabled', false);
+
+                    $("#playerStatus").html("【投票结束】")
+
+                    $("#voteStatus").css({'color': 'red'});
+                    $("#voteStatus").html("【投票结束】");
+
+                }
+
+            }      
+
+            function genVotesHtml(votes){
+                var retHtml = "";
+                for(let key in votes){
+                    var byVoter = key;
+                    var voters = votes[key];
+                    retHtml += genVoteHtml(byVoter, voters);
+                }
+                return retHtml;
+            }
+
+
+            function genVoteHtml(byVoter, votes){
+                var retHtml = "<div class=\"list-group\">";
+                retHtml += "<a href=\"#\" class=\"list-group-item active padding4\">";
+                retHtml += "<h5 class=\"list-group-item-heading noMargin\">";
+                retHtml += byVoter + "* " + String(votes.length)+ " 票";
+                retHtml += "</h5>";
+                retHtml += "</a>";
+                retHtml += "<a href=\"#\" class=\"list-group-item padding4\">";
+                retHtml += "<h5 class=\"list-group-item-heading noMargin\">";
+                
+                retHtml += votes.join(",");
+
+                retHtml += "</h5>";
+                retHtml += "</a>";
+                retHtml += "</div>";
+            
+                return retHtml;
+
+            }
+
+            function showPlayers(players){
+                players_tmp = players;
+                let playerHtml = "";
+
+                $("#rename").prop('disabled', false);
+                $("#voteButton").prop('disabled', true);
+
+                players.forEach((player)=>{
+                    if(player.name === name_cookie){
+                        playerHtml += genCurrentPlayerHtml(player);
+
+                        if(player.status === "alive"){
+                            $("#playerStatus").html("【游戏中】");
+                            $("#rename").prop('disabled', true);
+                            $("#voteButton").prop('disabled', false);
+                        } else if(player.status === "dead") {
+                            $("#playerStatus").html("【旁观中】");
+                            $("#rename").prop('disabled', true);
+                        } else {
+                            $("#playerStatus").html("");
+                        }
+
+                    } else {
+                        playerHtml += genPlayerHtml(player);
+                    }
+                  
+                });
+
+                $("#allplayers").empty();
+                $("#allplayers").html(playerHtml);
+
+            }
+
+            function genPlayerHtml(player){
+                var status = player.status;
+                var statusStyle = "#8ffd8f";
+                if(status === "dead"){
+                    statusStyle = "red";
+                    return "<button style=\"margin-left: 10px; margin-bottom: 10px; padding: 4px;border-radius: 0px;background-color:"+ statusStyle+ ";color:black\"  class=\"btn btn-primary\">"+ player.name+"</button>"
+                } else {
+                    return "<button style=\"margin-left: 10px; margin-bottom: 10px; padding: 4px;border-radius: 0px;background-color:"+ statusStyle+ ";color:black\"  class=\"btn btn-primary\" onclick=\"select(this)\">"+ player.name+"</button>"
+                }
+                
+            }
+
+            function genCurrentPlayerHtml(player){
+                var status = player.status;
+                var statusStyle = "#8ffd8f";
+                if(status === "dead"){
+                    statusStyle = "red";
+                }
+                return "<button style=\"margin-left: 10px; margin-bottom: 10px; padding: 4px;border-radius: 0px;background-color:"+ statusStyle+ ";color:black\"  class=\"btn btn-primary\" onclick=\"tell()\">"+ player.name+"</button>"
+            }
+
+            function tell(){
+                alert("自己可不能选自己哦！");
+            }
+            function vote(){
+                var myname = name_cookie;
+                var byVoter = $("#byVoter").html();
+                if(byVoter === "" || byVoter === null || byVoter === undefined){
+                    alert("请选择一个玩家，然后进行投票!!");
+                    return;
+                }
+
+                ws.send(JSON.stringify({channel:"VOTE", msg:{voter:myname, byVoter:byVoter}}));
+                $("#wanna").html("已投票:&nbsp;");
+                $("#voteButton").prop('disabled', true);
+                $("#readyButton").prop('disabled', true);
+                $("#observeButton").prop('disabled', true);
+            }
+
+            function killMe(){
+
+            }
+
+
+            function sendLogin(){
+                ws.send(JSON.stringify({channel:"LOGIN", msg: {name:name_cookie}}));
+            }
+
+            function sendReady(){
+                ws.send(JSON.stringify({channel:"READY", msg: {name:name_cookie}}));
+                $("#byVoter").html("");
+                $("#playerStatus").html("【游戏中】");
+                $("#wanna").html("我要投:&nbsp;");
+                $("#votesDiv").html("");
+
+                $("#voteStatus").css({'color': '#8ffd8f'});
+                $("#voteStatus").html("【投票中】");
+
+                
+            }
+
+            function sendObserve(){
+                ws.send(JSON.stringify({channel:"OBS", msg: {name:name_cookie}}));
+                $("#playerStatus").html("【旁观中】");
+                $("#votesDiv").html("");
+
+                $("#voteStatus").css({'color': '#8ffd8f'});
+                $("#voteStatus").html("【投票中】");
+
+            }
+        }
+
+
+        function select(self){
+            if($("#playerStatus").html() !== "【游戏中】"){
+                alert("没有准备游戏，不能投票！");
+                return;
+            }
+            var name = $(self).text();
+            var cssSt = $(self).css("background-color");
+
+            $("#byVoter").html(name);
+
+        }
+
+        function rename(){
+            window.location.href='./login.html';
+        }
+       
+    </script>
+</html>

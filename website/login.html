@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>WebSocket Echo Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link href="./bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="./js/jquery-1.12.3.min.js"></script>
+    <script src="./js/jquery.cookie.js"></script>
+    
+    <script src="./bootstrap-3.3.5/js/bootstrap.min.js"></script>
+    <script>
+        // var name_cookie = $.cookie("__name__");
+        // if(name_cookie === null){
+        //     alert(1);
+        // } else {
+        //     alert(2);
+        // }
+        function setName(){
+            var name = $("#name").val();
+            if(name ==""){
+                alert("名字不可为空");
+            } else {
+                $.cookie('__name__', name, {"path":"/"})
+                window.location.href='./index.html';
+            }
+
+        }
+       
+    </script>
+</head>
+
+<body >
+    <div class="vertical-center">
+        <div class="container">
+            <p>&nbsp;</p>
+            <form role="form" id="chat_form" onsubmit="sendMessage(); return false;">
+                <div class="form-group" style="margin-left: 10%">
+                    <input class="form-control" id="name"  style="width:80%"  type="text" name="message" id="message"
+                           placeholder="设置your名字" value="" />
+                </div>
+                <div style="margin-left: 10%">
+                    <button type="button"  style="width:80%" id="send" class="btn btn-primary"
+                        onclick="setName();">
+                    确定
+                </button>
+                </div>
+                
+            </form>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "name": "middleware-api-for-cloud",
+  "version": "1.0.0",
+  "description": "Middleware API for CloudView operational and analytical data",
+  "main": "index.js",
+  "bin": "index.js",
+  "scripts": {
+    "prestart": "npm install",
+    "start": "node index.js"
+  },
+  "keywords": [
+    "swagger"
+  ],
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "connect": "^3.2.0",
+    "js-yaml": "^3.3.0",
+    "swagger-tools": "0.10.1",
+    "log4js": "^2.3.3",
+    "node-noop": "",
+    "async": "",
+    "request": "",
+    "tracer": "",
+    "lodash": "",
+    "redis": "",
+    "moment": "",
+    "websocket": "",
+    "elasticsearch": "^13.1.1",
+    "uuid":"",
+    "cookie-parser": ""
+
+  },
+  "pkg": {
+    "targets": [
+      "node8-linux-x64",
+      "node8-win-x64"
+    ]
+  }
+}
