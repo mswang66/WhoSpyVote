@@ -137,8 +137,24 @@ module.exports = function (server) {
           let ret1 =  {"channel":"PLAYERS","msg":players};
           // let ret =  {"channel":"PLAYERS","msg":players};
           connection.sendUTF(JSON.stringify(ret1));
+
+          let curStatus ="" ;
+          players.forEach((player)=>{
+            if(player.name === playerName){
+              curStatus = player.status;
+            }
+          })
+
           let ret2 =  {"channel":"VOTES","msg":votes};
-          connection.sendUTF(JSON.stringify(ret2));
+          if(curStatus === "dead"){
+            connection.sendUTF(JSON.stringify(ret2));
+          } else {
+            votes.forEach((vote)=>{
+              if(vote.voter === playerName){
+                connection.sendUTF(JSON.stringify(ret2));
+              }
+            })
+          }
           break;
         case "READY":
           //登录时
